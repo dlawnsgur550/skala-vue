@@ -242,7 +242,7 @@ onMounted(loadWeather)
       <template #header>
         <div class="map-panel-heading">
           <div>
-            <span class="panel-kicker">LIVE SECTOR / KR</span>
+            <span class="panel-kicker">LIVE SECTOR / KR · JP</span>
             <h2 id="game-map-title">{{ preferenceStore.texts.game.mapTitle }}</h2>
           </div>
           <span :class="['signal-chip', { warning: hasWeatherError }]">

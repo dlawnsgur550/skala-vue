@@ -123,7 +123,7 @@ const selectCity = (cityId) => {
       class="map-viewport"
       :class="{ 'map-viewport--dragging': camera.dragging }"
       role="region"
-      :aria-label="labels.mapHint || '대한민국 픽셀 날씨 지도'"
+      :aria-label="labels.mapHint || '한국과 일본 픽셀 날씨 지도'"
       @pointerdown="startDragging"
       @pointermove="dragMap"
       @pointerup="stopDragging"
@@ -132,7 +132,7 @@ const selectCity = (cityId) => {
     >
       <div class="map-world" :style="worldStyle">
         <svg
-          class="korea-pixel-map"
+          class="east-asia-pixel-map"
           viewBox="0 0 1000 720"
           preserveAspectRatio="none"
           aria-hidden="true"
@@ -146,6 +146,11 @@ const selectCity = (cityId) => {
               <rect width="32" height="32" fill="#759c52" />
               <rect width="16" height="16" fill="#80aa59" />
               <rect x="16" y="16" width="16" height="16" fill="#6d914c" />
+            </pattern>
+            <pattern id="japan-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+              <rect width="28" height="28" fill="#86a85b" />
+              <rect width="14" height="14" fill="#96b768" />
+              <rect x="14" y="14" width="14" height="14" fill="#78974e" />
             </pattern>
           </defs>
 
@@ -188,6 +193,50 @@ const selectCity = (cityId) => {
           <rect class="island-detail" x="370" y="680" width="70" height="12" />
           <rect class="small-island" x="192" y="426" width="22" height="22" />
           <rect class="small-island" x="224" y="470" width="14" height="14" />
+
+          <g class="japan-shadow">
+            <polygon
+              points="866,96 930,96 930,114 956,114 956,162 938,162 938,186 904,186 904,202 870,202 870,186 846,186 846,146 856,146 856,114 866,114"
+            />
+            <polygon
+              points="928,212 954,212 954,244 936,244 936,276 914,276 914,308 890,308 890,340 862,340 862,372 834,372 834,404 806,404 806,436 778,436 778,468 746,468 746,452 724,452 724,424 748,424 748,396 776,396 776,368 804,368 804,340 832,340 832,312 860,312 860,282 888,282 888,250 910,250 910,212"
+            />
+            <polygon
+              points="712,470 752,470 752,486 770,486 770,518 754,518 754,544 730,544 730,558 706,558 706,542 692,542 692,510 702,510 702,486 712,486"
+            />
+            <polygon
+              points="776,442 826,442 826,454 842,454 842,478 822,478 822,490 784,490 784,478 766,478 766,454 776,454"
+            />
+          </g>
+
+          <g class="japan-island">
+            <polygon
+              points="858,86 922,86 922,104 948,104 948,152 930,152 930,176 896,176 896,192 862,192 862,176 838,176 838,136 848,136 848,104 858,104"
+            />
+            <polygon
+              points="920,202 946,202 946,234 928,234 928,266 906,266 906,298 882,298 882,330 854,330 854,362 826,362 826,394 798,394 798,426 770,426 770,458 738,458 738,442 716,442 716,414 740,414 740,386 768,386 768,358 796,358 796,330 824,330 824,302 852,302 852,272 880,272 880,240 902,240 902,202"
+            />
+            <polygon
+              points="704,460 744,460 744,476 762,476 762,508 746,508 746,534 722,534 722,548 698,548 698,532 684,532 684,500 694,500 694,476 704,476"
+            />
+            <polygon
+              points="768,432 818,432 818,444 834,444 834,468 814,468 814,480 776,480 776,468 758,468 758,444 768,444"
+            />
+          </g>
+
+          <g class="japan-detail">
+            <rect x="878" y="118" width="28" height="24" />
+            <rect x="858" y="292" width="24" height="22" />
+            <rect x="806" y="356" width="22" height="20" />
+            <rect x="732" y="492" width="18" height="24" />
+          </g>
+
+          <g class="japan-small-islands">
+            <rect x="674" y="430" width="14" height="24" />
+            <rect x="650" y="566" width="14" height="14" />
+            <rect x="628" y="594" width="12" height="12" />
+            <rect x="604" y="620" width="10" height="10" />
+          </g>
         </svg>
 
         <div class="marker-layer">
@@ -247,7 +296,7 @@ const selectCity = (cityId) => {
   transition: none;
 }
 
-.korea-pixel-map,
+.east-asia-pixel-map,
 .marker-layer {
   position: absolute;
   inset: 0;
@@ -255,7 +304,7 @@ const selectCity = (cityId) => {
   height: 100%;
 }
 
-.korea-pixel-map {
+.east-asia-pixel-map {
   image-rendering: pixelated;
 }
 
@@ -306,6 +355,29 @@ const selectCity = (cityId) => {
   fill: #71984f;
   stroke: #263e29;
   stroke-width: 5;
+}
+
+.japan-shadow {
+  fill: #1c362b;
+}
+
+.japan-island {
+  fill: url(#japan-grid);
+  stroke: #263e29;
+  stroke-width: 7;
+  stroke-linejoin: miter;
+}
+
+.japan-detail {
+  fill: #52743e;
+  stroke: #2f4e31;
+  stroke-width: 4;
+}
+
+.japan-small-islands {
+  fill: #86a85b;
+  stroke: #263e29;
+  stroke-width: 4;
 }
 
 .marker-layer {
