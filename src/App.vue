@@ -11,7 +11,14 @@ const preferenceStore = usePreferenceStore()
     <div class="app-container">
       <header class="game-header">
         <div class="brand-lockup">
-          <span class="brand-emblem" aria-hidden="true"> <i></i><i></i><i></i><i></i> </span>
+          <img
+            class="brand-emblem"
+            src="/survival-map-icon.png"
+            alt=""
+            width="64"
+            height="64"
+            aria-hidden="true"
+          />
           <div>
             <span class="system-name">WEATHER SURVIVAL SYSTEM</span>
             <h1>{{ preferenceStore.texts.game.title }}</h1>
@@ -179,29 +186,11 @@ const preferenceStore = usePreferenceStore()
 }
 
 .brand-emblem {
-  display: grid;
   flex: 0 0 auto;
-  grid-template-columns: repeat(2, 17px);
-  gap: 3px;
-  width: 48px;
-  height: 48px;
-  place-content: center;
-  background: #355f37;
-  border: 4px solid var(--pixel-border-color);
-  box-shadow: inset 0 0 0 3px #79a64e;
-  transform: rotate(45deg);
-}
-
-.brand-emblem i {
-  display: block;
-  width: 17px;
-  height: 17px;
-  background: #bbdf62;
-}
-
-.brand-emblem i:nth-child(2),
-.brand-emblem i:nth-child(3) {
-  background: #f2bd53;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  image-rendering: pixelated;
 }
 
 .navigation-bar {
@@ -291,7 +280,8 @@ const preferenceStore = usePreferenceStore()
   }
 
   .brand-emblem {
-    display: none;
+    width: 48px;
+    height: 48px;
   }
 }
 </style>
