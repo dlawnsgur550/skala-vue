@@ -1,7 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import CityMarker from './CityMarker.vue'
-import MapControls from './MapControls.vue'
 
 defineProps({
   weatherList: {
@@ -42,34 +41,37 @@ const camera = reactive({
 })
 
 const lastDragFinishedAt = ref(0)
+const MIN_ZOOM = 0.75
+const MAX_ZOOM = 2
+const ZOOM_STEP = 0.1
 
 const worldStyle = computed(() => ({
   transform: `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.zoom})`,
 }))
 
-const clampPosition = (value) => {
-  const limit = 360 * camera.zoom
+const clampPosition = (value, zoom = camera.zoom) => {
+  const limit = 360 * zoom
   return Math.min(limit, Math.max(-limit, value))
 }
 
-const moveMap = (direction) => {
-  const distance = 64
-  if (direction === 'up') camera.y = clampPosition(camera.y - distance)
-  if (direction === 'down') camera.y = clampPosition(camera.y + distance)
-  if (direction === 'left') camera.x = clampPosition(camera.x - distance)
-  if (direction === 'right') camera.x = clampPosition(camera.x + distance)
-}
+const zoomMap = (event) => {
+  if (event.deltaY === 0) return
 
-const updateZoom = (newZoom) => {
-  camera.zoom = Math.min(2, Math.max(0.75, Number(newZoom)))
-  camera.x = clampPosition(camera.x)
-  camera.y = clampPosition(camera.y)
-}
+  const zoomDirection = event.deltaY < 0 ? 1 : -1
+  const nextZoom = Math.min(
+    MAX_ZOOM,
+    Math.max(MIN_ZOOM, Number((camera.zoom + zoomDirection * ZOOM_STEP).toFixed(2))),
+  )
+  if (nextZoom === camera.zoom) return
 
-const resetMap = () => {
-  camera.x = 0
-  camera.y = 0
-  camera.zoom = 1
+  const viewport = event.currentTarget.getBoundingClientRect()
+  const pointerX = event.clientX - viewport.left - viewport.width / 2
+  const pointerY = event.clientY - viewport.top - viewport.height / 2
+  const zoomRatio = nextZoom / camera.zoom
+
+  camera.x = clampPosition(pointerX - (pointerX - camera.x) * zoomRatio, nextZoom)
+  camera.y = clampPosition(pointerY - (pointerY - camera.y) * zoomRatio, nextZoom)
+  camera.zoom = nextZoom
 }
 
 const startDragging = (event) => {
@@ -113,19 +115,6 @@ const selectCity = (cityId) => {
   emit('select-city', cityId)
 }
 
-const handleKeyboard = (event) => {
-  const directionByKey = {
-    ArrowUp: 'up',
-    ArrowDown: 'down',
-    ArrowLeft: 'left',
-    ArrowRight: 'right',
-  }
-  const direction = directionByKey[event.key]
-  if (!direction) return
-
-  event.preventDefault()
-  moveMap(direction)
-}
 </script>
 
 <template>
@@ -133,14 +122,13 @@ const handleKeyboard = (event) => {
     <div
       class="map-viewport"
       :class="{ 'map-viewport--dragging': camera.dragging }"
-      role="application"
-      tabindex="0"
+      role="region"
       :aria-label="labels.mapHint || '대한민국 픽셀 날씨 지도'"
       @pointerdown="startDragging"
       @pointermove="dragMap"
       @pointerup="stopDragging"
       @pointercancel="stopDragging"
-      @keydown="handleKeyboard"
+      @wheel.prevent="zoomMap"
     >
       <div class="map-world" :style="worldStyle">
         <svg
@@ -218,17 +206,7 @@ const handleKeyboard = (event) => {
         <span class="map-loading__blocks" aria-hidden="true">▰ ▰ ▰</span>
         <span>{{ labels.loadingMap || 'LOADING WEATHER...' }}</span>
       </div>
-
-      <div class="map-legend" aria-hidden="true">DRAG MAP · SELECT CITY</div>
     </div>
-
-    <MapControls
-      :zoom="camera.zoom"
-      :labels="labels"
-      @move-map="moveMap"
-      @update-zoom="updateZoom"
-      @reset-map="resetMap"
-    />
   </section>
 </template>
 
@@ -251,12 +229,6 @@ const handleKeyboard = (event) => {
   outline: none;
   touch-action: none;
   user-select: none;
-}
-
-.map-viewport:focus-visible {
-  box-shadow:
-    inset 0 0 0 4px #d7f28b,
-    inset 0 0 34px rgb(4 17 22 / 65%);
 }
 
 .map-viewport--dragging {
@@ -360,19 +332,6 @@ const handleKeyboard = (event) => {
   animation: loading-blink 800ms steps(2, end) infinite;
 }
 
-.map-legend {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 3;
-  padding: 5px 8px;
-  color: #d5e8cf;
-  background: rgb(12 27 34 / 82%);
-  border: 2px solid #75919a;
-  font-size: 0.68rem;
-  pointer-events: none;
-}
-
 @keyframes loading-blink {
   50% {
     opacity: 0.35;
@@ -382,10 +341,6 @@ const handleKeyboard = (event) => {
 @media (max-width: 620px) {
   .map-viewport {
     min-height: 470px;
-  }
-
-  .map-legend {
-    display: none;
   }
 }
 
