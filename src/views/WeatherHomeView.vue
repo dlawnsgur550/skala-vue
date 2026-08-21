@@ -209,8 +209,7 @@ watch(
 )
 
 watchEffect(() => {
-  const pageName = selectedCityName.value || preferenceStore.texts.game.mapTitle
-  document.title = `${pageName} | ${preferenceStore.texts.game.title}`
+  document.title = preferenceStore.texts.game.title
 })
 
 onMounted(loadWeather)
