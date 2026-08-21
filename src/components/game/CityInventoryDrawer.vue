@@ -121,6 +121,12 @@ const convertTemperature = (temperature) => {
 
 const displayTemperature = computed(() => convertTemperature(props.city?.temp))
 
+const formatForecastDate = (date) => {
+  const [, month, day] = String(date).split('-')
+  if (!month || !day) return date
+  return `${Number(month)}/${Number(day)}`
+}
+
 const displayWind = computed(() => {
   if (props.city?.wind) return props.city.wind
   const windSpeed = Number(props.city?.windSpeed)
@@ -246,7 +252,9 @@ const closeDrawer = () => emit('update:modelValue', false)
               class="forecast-slot"
               role="listitem"
             >
-              <time :datetime="forecast.date">{{ forecast.date }}</time>
+              <time :datetime="forecast.date" :title="forecast.date">
+                {{ formatForecastDate(forecast.date) }}
+              </time>
               <span class="forecast-icon" aria-hidden="true">{{ forecast.icon }}</span>
               <strong>{{ convertTemperature(forecast.temp) }}{{ configStore.unitSymbol }}</strong>
               <small>{{ text('humidity') }} {{ forecast.humidity }}%</small>
@@ -533,7 +541,13 @@ const closeDrawer = () => emit('update:modelValue', false)
 }
 
 .forecast-slot time {
-  overflow-wrap: anywhere;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.forecast-slot small {
+  font-size: 0.64rem;
+  white-space: nowrap;
 }
 
 .forecast-icon {
