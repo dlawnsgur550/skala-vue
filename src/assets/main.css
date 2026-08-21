@@ -1,20 +1,133 @@
-@import './base.css';
+/* Galmuri is bundled locally under the SIL Open Font License 1.1. */
+@font-face {
+  font-family: 'Galmuri11';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2');
+}
 
-#app {
+@font-face {
+  font-family: 'Galmuri11';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2');
+}
+
+:root {
+  font-family: 'Galmuri11', monospace;
+  font-synthesis: none;
+  color-scheme: light;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: #172b32;
+}
+
+body {
+  min-width: 320px;
   min-height: 100vh;
-  font-weight: normal;
+  margin: 0;
+  line-height: 1.55;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
 a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+strong,
+h1,
+h2,
+h3 {
+  font-family: 'Galmuri11', monospace;
+  font-weight: 700;
+}
+
+.theme-page {
+  --el-font-family: 'Galmuri11', monospace;
+  --el-border-radius-base: 0;
+  --el-color-primary: #5c8f3c;
+  --el-color-primary-light-3: #79ab52;
+  --el-color-primary-light-5: #92bd68;
+  --el-color-primary-dark-2: #396629;
+  --el-bg-color: var(--pixel-panel);
+  --el-bg-color-overlay: var(--pixel-panel-deep);
+  --el-fill-color-blank: var(--pixel-panel);
+  --el-fill-color-light: var(--pixel-panel-deep);
+  --el-border-color: var(--pixel-border-color);
+  --el-border-color-light: var(--pixel-border-highlight);
+  --el-text-color-primary: var(--pixel-ink-strong);
+  --el-text-color-regular: var(--pixel-ink);
+  --el-text-color-secondary: var(--pixel-muted);
+}
+
+.el-button,
+.el-input__wrapper,
+.el-select__wrapper,
+.el-card,
+.el-switch__core,
+.el-popper,
+.el-drawer {
+  border-radius: 0 !important;
+}
+
+.el-button {
+  font-family: inherit;
+}
+
+.pixel-city-popover.el-popper {
+  color: #eef4d5;
+  background: #253a3c;
+  border: 3px solid #101d20;
+  box-shadow: 4px 4px 0 rgb(7 13 15 / 55%);
+  font-family: 'Galmuri11', monospace;
+}
+
+.pixel-city-popover.el-popper .el-popper__arrow::before {
+  background: #253a3c;
+  border-color: #101d20;
+}
+
+::selection {
+  color: #17291d;
+  background: #c8e66f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

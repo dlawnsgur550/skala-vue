@@ -1,29 +1,119 @@
 <script setup>
-import { ref, computed, watch, watchEffect, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import BaseDashboardCard from '../components/exercise/BaseDashboardCard.vue'
-import SearchBar from '../components/exercise/SearchBar.vue'
-import HeatCriteria from '../components/exercise/HeatCriteria.vue'
-import WeatherCard from '../components/exercise/WeatherCard.vue'
+import CityInventoryDrawer from '../components/game/CityInventoryDrawer.vue'
+import GamePanel from '../components/game/GamePanel.vue'
+import GameSettings from '../components/game/GameSettings.vue'
+import WeatherGameMap from '../components/game/WeatherGameMap.vue'
 import { weatherCities } from '../data/weatherData'
-import { fetchCurrentWeather } from '../services/weatherApi'
-import { useConfigStore } from '../stores/configStore'
+import { fetchAirQuality, fetchCurrentWeather, fetchFiveDayForecast } from '../services/weatherApi'
 import { usePreferenceStore } from '../stores/preferenceStore'
 
 const route = useRoute()
 const router = useRouter()
-const configStore = useConfigStore()
 const preferenceStore = usePreferenceStore()
 
-const weatherList = ref([])
+const currentWeatherById = reactive({})
+const detailCache = reactive({})
 const isWeatherLoading = ref(false)
 const hasWeatherError = ref(false)
-const lastUpdated = ref('')
-const searchQuery = ref('')
-const selectedCityId = ref('')
-const statusMode = ref('initial')
-const hotTemperature = ref(25)
-const hotHumidity = ref(65)
+const lastUpdated = ref(null)
+
+const weatherList = computed(() => {
+  return weatherCities.map((city) => {
+    const weather = currentWeatherById[city.id] ?? city
+    return {
+      ...weather,
+      statusText: weather.status ? preferenceStore.texts.statuses[weather.status] : '',
+    }
+  })
+})
+
+const displayLastUpdated = computed(() => {
+  if (!lastUpdated.value) return ''
+  const localeByLanguage = { ko: 'ko-KR', en: 'en-US', ja: 'ja-JP' }
+  return lastUpdated.value.toLocaleTimeString(localeByLanguage[preferenceStore.language])
+})
+
+const routeCityId = computed(() => {
+  return typeof route.params.cityId === 'string' ? route.params.cityId : ''
+})
+
+const selectedCity = computed(() => {
+  return weatherCities.find((city) => city.id === routeCityId.value) ?? null
+})
+
+const selectedWeather = computed(() => {
+  if (!selectedCity.value) return null
+  return currentWeatherById[selectedCity.value.id] ?? null
+})
+
+const selectedDetail = computed(() => {
+  return (
+    detailCache[routeCityId.value] ?? {
+      forecastList: [],
+      airQuality: null,
+      loading: false,
+      detailError: false,
+      airQualityError: false,
+    }
+  )
+})
+
+const selectedCityName = computed(() => {
+  if (!selectedCity.value) return ''
+  return preferenceStore.texts.cityNames[selectedCity.value.id]
+})
+
+const selectedStatusText = computed(() => {
+  if (!selectedWeather.value) return ''
+  return preferenceStore.texts.statuses[selectedWeather.value.status]
+})
+
+const drawerLabels = computed(() => {
+  return {
+    ...preferenceStore.texts,
+    ...preferenceStore.texts.game,
+    temperature: preferenceStore.texts.currentTemp,
+    humidity: preferenceStore.texts.humidity,
+    wind: preferenceStore.texts.windSpeed,
+    aqi: preferenceStore.texts.europeanAqi,
+    loading: preferenceStore.texts.loadingDetail,
+    loadError: preferenceStore.texts.detailLoadError,
+  }
+})
+
+const settingsLabels = computed(() => {
+  const game = preferenceStore.texts.game
+  return {
+    title: game.settingsTitle,
+    theme: game.appearance,
+    unit: game.unit,
+    language: game.language,
+    city: game.city,
+    cityPlaceholder: game.selectCity,
+    refresh: game.refresh,
+  }
+})
+
+const drawerVisible = computed({
+  get() {
+    return Boolean(selectedCity.value)
+  },
+  set(isOpen) {
+    if (!isOpen && routeCityId.value) {
+      router.push({ name: 'WeatherHome' })
+    }
+  },
+})
+
+const statusMessage = computed(() => {
+  if (selectedCity.value) {
+    return `${selectedCityName.value} · ${preferenceStore.texts.game.statusSelected}`
+  }
+  if (hasWeatherError.value) return preferenceStore.texts.weatherLoadError
+  return preferenceStore.texts.game.statusReady
+})
 
 const loadWeather = async () => {
   if (isWeatherLoading.value) return
@@ -31,228 +121,278 @@ const loadWeather = async () => {
   isWeatherLoading.value = true
   hasWeatherError.value = false
 
-  try {
-    const liveWeatherList = []
+  const results = await Promise.allSettled(weatherCities.map((city) => fetchCurrentWeather(city)))
+  let successCount = 0
 
-    for (const city of weatherCities) {
-      const cityWeather = await fetchCurrentWeather(city)
-      liveWeatherList.push(cityWeather)
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      currentWeatherById[weatherCities[index].id] = result.value
+      successCount += 1
     }
-
-    weatherList.value = liveWeatherList
-    lastUpdated.value = new Date().toLocaleTimeString()
-  } catch {
-    hasWeatherError.value = true
-  } finally {
-    isWeatherLoading.value = false
-  }
-}
-
-onMounted(() => {
-  if (typeof route.query.search === 'string') {
-    searchQuery.value = route.query.search
-  }
-
-  loadWeather()
-})
-
-const filteredWeatherList = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return weatherList.value
-
-  return weatherList.value.filter((city) => {
-    const cityName = preferenceStore.texts.cityNames[city.id].toLowerCase()
-    return cityName.includes(query)
   })
-})
 
-const hotAndHumidCityList = computed(() => {
-  return weatherList.value.filter((city) => {
-    return city.temp >= hotTemperature.value && city.humidity >= hotHumidity.value
-  })
-})
-
-const displayHotTemperature = computed(() => {
-  if (configStore.unit === 'fahrenheit') {
-    return Math.round((hotTemperature.value * 9) / 5 + 32)
-  }
-  return hotTemperature.value
-})
-
-const statusMessage = computed(() => {
-  if (statusMode.value === 'selected') {
-    return `${preferenceStore.texts.cityNames[selectedCityId.value]} ${preferenceStore.texts.selectedSuffix}`
-  }
-
-  if (statusMode.value === 'criteria') {
-    return `${preferenceStore.texts.criteriaChanged} (${displayHotTemperature.value}${configStore.unitSymbol}, ${hotHumidity.value}%)`
-  }
-
-  return preferenceStore.texts.initialStatus
-})
-
-watch(searchQuery, (newQuery) => {
-  router.push({
-    name: 'WeatherHome',
-    query: newQuery ? { search: newQuery } : {},
-  })
-})
-
-watch(selectedCityId, (newCityId) => {
-  if (newCityId) {
-    console.log(`선택된 도시 ID: ${newCityId}`)
-  }
-})
-
-watch([hotTemperature, hotHumidity], ([newTemp, newHumidity], [oldTemp, oldHumidity]) => {
-  statusMode.value = 'criteria'
-  console.log(`더위 기준 변경: ${oldTemp}℃/${oldHumidity}% → ${newTemp}℃/${newHumidity}%`)
-})
-
-watchEffect(() => {
-  console.log(`현재 검색어 '${searchQuery.value}'에 맞는 날씨 데이터를 필터링합니다.`)
-})
-
-const updateSearchQuery = (newQuery) => {
-  searchQuery.value = newQuery
+  hasWeatherError.value = successCount === 0
+  if (successCount > 0) lastUpdated.value = new Date()
+  isWeatherLoading.value = false
 }
 
-const updateHotTemperature = (newTemperature) => {
-  hotTemperature.value = newTemperature
-}
+const loadCityDetail = async (cityId, force = false) => {
+  const city = weatherCities.find((item) => item.id === cityId)
+  if (!city) return
 
-const updateHotHumidity = (newHumidity) => {
-  hotHumidity.value = newHumidity
-}
+  const saved = detailCache[cityId]
+  if (!force && saved && !saved.loading && saved.loaded) return
 
-const isHotAndHumid = (city) => {
-  return city.temp >= hotTemperature.value && city.humidity >= hotHumidity.value
+  detailCache[cityId] = {
+    forecastList: saved?.forecastList ?? [],
+    airQuality: saved?.airQuality ?? null,
+    loading: true,
+    loaded: false,
+    detailError: false,
+    airQualityError: false,
+  }
+
+  const currentRequest = currentWeatherById[cityId]
+    ? Promise.resolve(currentWeatherById[cityId])
+    : fetchCurrentWeather(city)
+
+  const [currentResult, forecastResult, airResult] = await Promise.allSettled([
+    currentRequest,
+    fetchFiveDayForecast(city),
+    fetchAirQuality(city),
+  ])
+
+  if (currentResult.status === 'fulfilled') {
+    currentWeatherById[cityId] = currentResult.value
+  }
+
+  detailCache[cityId] = {
+    forecastList: forecastResult.status === 'fulfilled' ? forecastResult.value : [],
+    airQuality: airResult.status === 'fulfilled' ? airResult.value : null,
+    loading: false,
+    loaded: true,
+    detailError: currentResult.status === 'rejected' || forecastResult.status === 'rejected',
+    airQualityError:
+      airResult.status === 'rejected' ||
+      airResult.value?.aqi === null ||
+      airResult.value?.aqi === undefined,
+  }
 }
 
 const selectCity = (cityId) => {
-  selectedCityId.value = cityId
-  statusMode.value = 'selected'
+  if (!weatherCities.some((city) => city.id === cityId)) return
+
+  if (routeCityId.value === cityId) {
+    loadCityDetail(cityId)
+    return
+  }
+
+  router.push({ name: 'WeatherDetail', params: { cityId } })
 }
 
-const goToDetail = (cityId) => {
-  router.push(`/weather/${cityId}`)
+const refreshAll = async () => {
+  await loadWeather()
+  if (selectedCity.value) await loadCityDetail(selectedCity.value.id, true)
 }
+
+watch(
+  routeCityId,
+  (cityId) => {
+    if (!cityId) return
+    if (!weatherCities.some((city) => city.id === cityId)) {
+      router.replace('/unknown-city')
+      return
+    }
+    loadCityDetail(cityId)
+  },
+  { immediate: true },
+)
+
+watchEffect(() => {
+  const pageName = selectedCityName.value || preferenceStore.texts.game.mapTitle
+  document.title = `${pageName} | ${preferenceStore.texts.game.title}`
+})
+
+onMounted(loadWeather)
 </script>
 
 <template>
-  <div class="dashboard-wrapper">
-    <BaseDashboardCard>
-      <SearchBar :current-query="searchQuery" @update-query="updateSearchQuery" />
-    </BaseDashboardCard>
-
-    <BaseDashboardCard>
-      <HeatCriteria
-        :hot-temperature="hotTemperature"
-        :hot-humidity="hotHumidity"
-        :hot-cities="hotAndHumidCityList"
-        @update-temperature="updateHotTemperature"
-        @update-humidity="updateHotHumidity"
-      />
-    </BaseDashboardCard>
-
-    <BaseDashboardCard>
-      <div class="weather-heading">
-        <div>
-          <h2>{{ preferenceStore.texts.weatherListTitle }}</h2>
-          <p class="api-label">{{ preferenceStore.texts.liveWeather }}</p>
-        </div>
-        <button class="refresh-button" :disabled="isWeatherLoading" @click="loadWeather">
-          {{ preferenceStore.texts.refreshWeather }}
-        </button>
+  <section class="weather-game-view" aria-labelledby="game-map-title">
+    <div class="mission-banner">
+      <span class="mission-led" aria-hidden="true"></span>
+      <div>
+        <strong>MISSION 01</strong>
+        <span>{{ preferenceStore.texts.game.mapHint }}</span>
       </div>
+      <time v-if="lastUpdated">
+        {{ preferenceStore.texts.lastUpdated }} {{ displayLastUpdated }}
+      </time>
+    </div>
 
-      <p v-if="lastUpdated" class="updated-time">
-        {{ preferenceStore.texts.lastUpdated }}: {{ lastUpdated }}
-      </p>
-      <p v-if="isWeatherLoading" class="loading-message">
-        {{ preferenceStore.texts.loadingWeather }}
-      </p>
-      <p v-else-if="hasWeatherError" class="error-message">
-        {{ preferenceStore.texts.weatherLoadError }}
-      </p>
+    <GameSettings
+      :cities="weatherList"
+      :selected-city-id="routeCityId"
+      :loading="isWeatherLoading"
+      :labels="settingsLabels"
+      @select-city="selectCity"
+      @refresh="refreshAll"
+    />
 
-      <WeatherCard
-        v-for="item in filteredWeatherList"
-        :key="item.id"
-        :city-item="item"
-        :is-hot="isHotAndHumid(item)"
-        @select-card="selectCity"
-        @click-detail="goToDetail"
+    <GamePanel class="map-console">
+      <template #header>
+        <div class="map-panel-heading">
+          <div>
+            <span class="panel-kicker">LIVE SECTOR / KR</span>
+            <h2 id="game-map-title">{{ preferenceStore.texts.game.mapTitle }}</h2>
+          </div>
+          <span :class="['signal-chip', { warning: hasWeatherError }]">
+            {{ hasWeatherError ? 'SIGNAL LOST' : 'ONLINE' }}
+          </span>
+        </div>
+      </template>
+
+      <WeatherGameMap
+        :weather-list="weatherList"
+        :selected-city-id="routeCityId"
+        :city-names="preferenceStore.texts.cityNames"
+        :labels="preferenceStore.texts.game"
+        :loading="isWeatherLoading"
+        @select-city="selectCity"
       />
 
-      <p
-        v-if="!isWeatherLoading && !hasWeatherError && filteredWeatherList.length === 0"
-        class="empty-message"
-      >
-        {{ preferenceStore.texts.noSearchResult }}
-      </p>
-    </BaseDashboardCard>
+      <template #footer>
+        <div class="map-status" role="status">
+          <span class="status-cursor" aria-hidden="true">▶</span>
+          <span>{{ statusMessage }}</span>
+        </div>
+      </template>
+    </GamePanel>
 
-    <p class="status-bar">{{ statusMessage }}</p>
-  </div>
+    <p v-if="hasWeatherError" class="global-error">
+      {{ preferenceStore.texts.weatherLoadError }}
+    </p>
+
+    <CityInventoryDrawer
+      v-model="drawerVisible"
+      :city="selectedWeather"
+      :forecast-list="selectedDetail.forecastList"
+      :air-quality="selectedDetail.airQuality"
+      :air-quality-error="selectedDetail.airQualityError"
+      :loading="selectedDetail.loading"
+      :error="selectedDetail.detailError"
+      :city-name="selectedCityName"
+      :status-text="selectedStatusText"
+      :labels="drawerLabels"
+      @retry="loadCityDetail(routeCityId, true)"
+    />
+  </section>
 </template>
 
 <style scoped>
-.dashboard-wrapper {
-  color: #24324a;
+.weather-game-view {
+  display: grid;
+  gap: 14px;
 }
 
-.dashboard-wrapper h2 {
-  margin: 0;
+.mission-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  color: var(--pixel-ink);
+  background: var(--pixel-panel-deep);
+  border: var(--pixel-border);
+  box-shadow: var(--pixel-shadow-small);
 }
 
-.weather-heading {
+.mission-banner div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.mission-banner strong {
+  color: var(--pixel-accent);
+}
+
+.mission-banner time {
+  color: var(--pixel-muted);
+  font-size: 0.75rem;
+}
+
+.mission-led {
+  width: 10px;
+  height: 10px;
+  background: #7ef29a;
+  box-shadow:
+    0 0 0 3px #1f5d37,
+    0 0 12px #7ef29a;
+}
+
+.map-panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
-.api-label,
-.updated-time {
-  margin: 4px 0;
-  color: #64748b;
-  font-size: 0.9rem;
+.map-panel-heading h2 {
+  margin: 2px 0 0;
+  color: var(--pixel-ink-strong);
+  font-size: clamp(1rem, 2vw, 1.35rem);
 }
 
-.refresh-button {
-  padding: 8px 12px;
-  color: #ffffff;
-  background: #1683bd;
-  border: 0;
-  border-radius: 4px;
-  cursor: pointer;
+.panel-kicker {
+  color: var(--pixel-accent);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
 }
 
-.refresh-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
+.signal-chip {
+  padding: 4px 8px;
+  color: #0c2c1a;
+  background: #7ef29a;
+  border: 2px solid #1f5d37;
+  font-size: 0.7rem;
 }
 
-.loading-message,
-.error-message,
-.empty-message {
-  padding: 16px;
-  text-align: center;
+.signal-chip.warning {
+  color: #3d140e;
+  background: #ff896f;
+  border-color: #8c2d22;
 }
 
-.error-message,
-.empty-message {
-  color: #b42318;
+.map-status {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  gap: 8px;
+  color: var(--pixel-muted);
+  font-size: 0.8rem;
 }
 
-.status-bar {
-  margin: 16px 0 0;
+.status-cursor {
+  color: var(--pixel-accent);
+}
+
+.global-error {
+  margin: 0;
   padding: 12px;
-  color: #155b32;
-  background: #dff3e5;
-  border: 1px solid #86c79d;
+  color: #ffd5cc;
+  background: #5c201b;
+  border: 3px solid #a84032;
   text-align: center;
-  font-weight: bold;
+}
+
+@media (max-width: 720px) {
+  .mission-banner {
+    grid-template-columns: auto 1fr;
+  }
+
+  .mission-banner time {
+    grid-column: 2;
+  }
 }
 </style>

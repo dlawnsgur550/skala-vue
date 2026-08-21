@@ -29,8 +29,11 @@ export const fetchCurrentWeather = async (city) => {
   return {
     ...city,
     temp: Math.round(response.data.main.temp),
+    feelsLike: Math.round(response.data.main.feels_like),
     humidity: response.data.main.humidity,
+    windSpeed: response.data.wind.speed,
     wind: `${response.data.wind.speed}m/s`,
+    precipitation: response.data.rain?.['1h'] ?? response.data.snow?.['1h'] ?? 0,
     status: getWeatherStatus(weatherId),
     icon: getWeatherIcon(weatherId),
     observedAt: response.data.dt,
@@ -76,8 +79,8 @@ export const fetchAirQuality = async (city) => {
   })
 
   return {
-    aqi: response.data.current.european_aqi,
-    pm10: response.data.current.pm10,
-    pm25: response.data.current.pm2_5,
+    aqi: response.data.current?.european_aqi ?? null,
+    pm10: response.data.current?.pm10 ?? null,
+    pm25: response.data.current?.pm2_5 ?? null,
   }
 }

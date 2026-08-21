@@ -5,61 +5,113 @@ import { usePreferenceStore } from '../stores/preferenceStore'
 const router = useRouter()
 const preferenceStore = usePreferenceStore()
 
-const goHome = () => {
-  router.push({ name: 'WeatherHome' })
-}
+const goHome = () => router.push({ name: 'WeatherHome' })
 </script>
 
 <template>
-  <section class="not-found-container">
-    <div class="not-found-content">
-      <div class="error-icon">☀️❓</div>
+  <section class="lost-sector">
+    <div class="lost-map" aria-hidden="true"><span>?</span><i></i><i></i><i></i><i></i><i></i></div>
+    <div>
+      <span class="error-code">ERROR / SECTOR 404</span>
       <h2>{{ preferenceStore.texts.notFoundTitle }}</h2>
-      <p>
-        {{ preferenceStore.texts.notFoundLine1 }}<br />{{ preferenceStore.texts.notFoundLine2 }}
-      </p>
-      <button class="home-button" @click="goHome">{{ preferenceStore.texts.goWeatherMain }}</button>
+      <p>{{ preferenceStore.texts.notFoundLine1 }} {{ preferenceStore.texts.notFoundLine2 }}</p>
+      <el-button type="primary" class="return-button" @click="goHome">
+        ◀ {{ preferenceStore.texts.goWeatherMain }}
+      </el-button>
     </div>
   </section>
 </template>
 
 <style scoped>
-.not-found-container {
+.lost-sector {
   display: grid;
-  place-items: center;
+  grid-template-columns: minmax(220px, 0.7fr) 1fr;
+  align-items: center;
+  gap: clamp(20px, 6vw, 70px);
   min-height: 560px;
-  padding: 24px;
-  color: #24324a;
-  background: #f8fafc;
+  padding: clamp(24px, 7vw, 70px);
+  background: var(--pixel-panel);
+  border: var(--pixel-border);
+  box-shadow:
+    inset 0 0 0 3px var(--pixel-border-highlight),
+    var(--pixel-shadow-small);
 }
 
-.not-found-content {
-  padding: 42px;
-  text-align: center;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+.lost-map {
+  position: relative;
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  color: #ffe16c;
+  background: #2f6574;
+  border: 6px solid var(--pixel-border-color);
+  box-shadow: inset 0 0 0 5px #75969a;
+  font-size: clamp(4rem, 12vw, 8rem);
 }
 
-.error-icon {
-  font-size: 5rem;
+.lost-map i {
+  position: absolute;
+  width: 22%;
+  height: 22%;
+  background: #71984f;
+  border: 4px solid #263e29;
 }
 
-.not-found-content h2 {
-  font-weight: bold;
+.lost-map i:nth-of-type(1) {
+  top: 12%;
+  left: 15%;
+}
+.lost-map i:nth-of-type(2) {
+  top: 10%;
+  right: 12%;
+}
+.lost-map i:nth-of-type(3) {
+  bottom: 12%;
+  left: 9%;
+}
+.lost-map i:nth-of-type(4) {
+  right: 12%;
+  bottom: 10%;
+}
+.lost-map i:nth-of-type(5) {
+  right: 38%;
+  bottom: 4%;
 }
 
-.not-found-content p {
-  color: #64748b;
+.lost-map span {
+  position: relative;
+  z-index: 2;
+  text-shadow: 5px 5px 0 #452b22;
 }
 
-.home-button {
-  padding: 11px 24px;
-  color: #ffffff;
-  background: #087ff5;
-  border: 0;
-  border-radius: 24px;
-  cursor: pointer;
+.error-code {
+  color: var(--pixel-danger);
+  letter-spacing: 0.12em;
+}
+
+.lost-sector h2 {
+  margin: 8px 0;
+  color: var(--pixel-ink-strong);
+  font-size: clamp(1.4rem, 4vw, 2.5rem);
+}
+
+.lost-sector p {
+  color: var(--pixel-muted);
+}
+
+.return-button {
+  margin-top: 14px;
+  border: 3px solid var(--pixel-border-color);
+}
+
+@media (max-width: 680px) {
+  .lost-sector {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .lost-map {
+    max-width: 300px;
+  }
 }
 </style>
