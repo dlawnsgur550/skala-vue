@@ -118,6 +118,12 @@ const languageOptions = [
   { value: 'ja', label: '日本語' },
 ]
 
+const selectPopperClass = computed(() => {
+  return preferenceStore.isDark
+    ? 'game-settings-select-popper--dark'
+    : 'game-settings-select-popper--light'
+})
+
 const cityOptions = computed(() => {
   const seenIds = new Set()
 
@@ -140,7 +146,12 @@ const cityOptions = computed(() => {
 </script>
 
 <template>
-  <section class="game-settings" role="region" :aria-label="copy.title">
+  <section
+    class="game-settings"
+    :class="{ 'is-dark': preferenceStore.isDark }"
+    role="region"
+    :aria-label="copy.title"
+  >
     <div class="game-settings__title">
       <span aria-hidden="true">⚙</span>
       <span>{{ copy.title }}</span>
@@ -173,6 +184,7 @@ const cityOptions = computed(() => {
           id="game-language-select"
           v-model="selectedLanguage"
           class="setting-slot__select"
+          :popper-class="selectPopperClass"
           :aria-label="copy.language"
         >
           <el-option
@@ -191,6 +203,7 @@ const cityOptions = computed(() => {
           v-model="selectedCity"
           class="setting-slot__select"
           :placeholder="copy.cityPlaceholder"
+          :popper-class="selectPopperClass"
           :aria-label="copy.city"
           filterable
         >
@@ -224,6 +237,10 @@ const cityOptions = computed(() => {
   --settings-slot: var(--game-slot, #f4e7bf);
   --settings-edge-dark: var(--game-edge-dark, #4c3b26);
   --settings-edge-light: var(--game-edge-light, #fff1c7);
+  --settings-select-bg: #fff7dc;
+  --settings-select-text: #26372a;
+  --settings-select-placeholder: #677264;
+  --settings-select-icon: #405444;
   color: var(--settings-ink);
   background: var(--settings-panel);
   border: 4px solid var(--settings-edge-dark);
@@ -257,6 +274,7 @@ const cityOptions = computed(() => {
     auto;
   gap: 8px;
   align-items: stretch;
+  grid-auto-rows: minmax(72px, auto);
   padding: 10px;
 }
 
@@ -294,7 +312,10 @@ const cityOptions = computed(() => {
 
 .game-settings__refresh {
   align-self: stretch;
-  min-height: 58px;
+  width: 100%;
+  height: 100%;
+  min-height: 72px;
+  margin: 0;
   padding-inline: 14px;
 }
 
@@ -323,10 +344,26 @@ const cityOptions = computed(() => {
 
 .game-settings :deep(.el-select__wrapper) {
   min-height: 30px;
-  background: #fff7dc;
+  color: var(--settings-select-text);
+  background: var(--settings-select-bg);
   border: 2px solid var(--settings-edge-dark);
   box-shadow: inset 2px 2px 0 #c9b580;
   font-family: inherit;
+}
+
+.game-settings :deep(.el-select__selected-item),
+.game-settings :deep(.el-select__input) {
+  color: var(--settings-select-text);
+  font-weight: 700;
+}
+
+.game-settings :deep(.el-select__placeholder.is-transparent) {
+  color: var(--settings-select-placeholder);
+  opacity: 1;
+}
+
+.game-settings :deep(.el-select__caret) {
+  color: var(--settings-select-icon);
 }
 
 .game-settings :deep(.el-button) {
@@ -350,18 +387,54 @@ const cityOptions = computed(() => {
   outline-offset: 2px;
 }
 
-:global(.dark-mode) .game-settings {
+.game-settings.is-dark {
   --settings-ink: #e8f0df;
   --settings-panel: #26352c;
   --settings-slot: #34473a;
   --settings-edge-dark: #111b15;
   --settings-edge-light: #617963;
+  --settings-select-bg: #18251e;
+  --settings-select-text: #fff7d2;
+  --settings-select-placeholder: #b9c9ae;
+  --settings-select-icon: #d6e5b8;
 }
 
-:global(.dark-mode) .game-settings :deep(.el-select__wrapper) {
-  color: #edf4e8;
-  background: #1e2b23;
+.game-settings.is-dark :deep(.el-select__wrapper) {
   box-shadow: inset 2px 2px 0 #111914;
+}
+
+:global(.game-settings-select-popper--light),
+:global(.game-settings-select-popper--dark) {
+  border: 3px solid #3d493e !important;
+  border-radius: 0 !important;
+  font-family: var(--pixel-font, 'Galmuri11', 'Courier New', monospace);
+}
+
+:global(.game-settings-select-popper--light) {
+  background: #fff7dc !important;
+}
+
+:global(.game-settings-select-popper--dark) {
+  background: #18251e !important;
+  border-color: #71857d !important;
+}
+
+:global(.game-settings-select-popper--light .el-select-dropdown__item) {
+  color: #26372a;
+  font-weight: 700;
+}
+
+:global(.game-settings-select-popper--dark .el-select-dropdown__item) {
+  color: #e8f0df;
+  font-weight: 700;
+}
+
+:global(.game-settings-select-popper--light .el-select-dropdown__item.is-hovering),
+:global(.game-settings-select-popper--light .el-select-dropdown__item.is-selected),
+:global(.game-settings-select-popper--dark .el-select-dropdown__item.is-hovering),
+:global(.game-settings-select-popper--dark .el-select-dropdown__item.is-selected) {
+  color: #172619;
+  background: #b9df74;
 }
 
 @media (max-width: 1050px) {
